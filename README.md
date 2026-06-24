@@ -1,7 +1,4 @@
 # AF PFRA Calculator
-
-A fully offline, single-repo GitHub Pages app for computing and optimizing Air Force Physical Fitness Readiness Assessment (PFRA) scores.
-
 ## Features
 
 - **Score Calculator** — Enter sex, age, height, waist, and all event options (HR push-ups, standard push-ups, sit-ups, reverse crunches, plank, HAMR, 2-mile run) and get instant scoring
