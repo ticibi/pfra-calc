@@ -1,4 +1,5 @@
 # AF PFRA Calculator
+https://ticibi.github.io/pfra-calc/
 ## Features
 
 - **Score Calculator** — Enter sex, age, height, waist, and all event options (HR push-ups, standard push-ups, sit-ups, reverse crunches, plank, HAMR, 2-mile run) and get instant scoring
