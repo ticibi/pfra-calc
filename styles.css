@@ -727,6 +727,28 @@ body::before {
   display: flex;
   gap: 0;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--blue-dim) transparent;
+}
+
+.chart-columns-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.chart-columns-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chart-columns-wrap::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--blue), var(--blue-dim));
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.chart-columns-wrap::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2a93ef, var(--blue));
+  background-clip: padding-box;
 }
 
 .chart-band {

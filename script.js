@@ -208,6 +208,7 @@ function setupCalculator() {
       document.querySelectorAll('.sex-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.sex = btn.dataset.sex;
+      syncChartSexFromCalculator();
       updateSilhouette();
       liveCalc();
     });
@@ -220,6 +221,7 @@ function setupCalculator() {
       state.heightIn = parseFloat(document.getElementById('height_in').value) || null;
       state.waistIn  = parseFloat(document.getElementById('waist_in').value) || null;
       savePersonalCache();
+      syncChartAgeFromCalculator();
       updateWhtrLive();
       liveCalc();
     });
@@ -871,6 +873,9 @@ function tierClass(pts, isCardio) {
 }
 
 function setupScoreCharts() {
+  syncChartSexFromCalculator();
+  syncChartAgeFromCalculator();
+
   document.querySelectorAll('[data-cgroup]').forEach(btn => {
     btn.addEventListener('click', () => {
       const group = btn.dataset.cgroup;
@@ -882,6 +887,27 @@ function setupScoreCharts() {
     });
   });
   renderScoreChart();
+}
+
+function syncChartSexFromCalculator() {
+  if (!state.sex) return;
+
+  CHART_STATE.sex = state.sex;
+
+  document.querySelectorAll('[data-cgroup="chart_sex"]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === state.sex);
+  });
+}
+
+function syncChartAgeFromCalculator() {
+  if (!state.age || isNaN(state.age)) return;
+
+  const ageGroup = getAgeGroup(state.age);
+  CHART_STATE.age = ageGroup;
+
+  document.querySelectorAll('[data-cgroup="chart_age"]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.val === ageGroup);
+  });
 }
 
 function renderScoreChart() {
