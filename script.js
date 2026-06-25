@@ -332,6 +332,8 @@ function liveCalc() {
   renderGoals({
     sex: state.sex, ageGroup,
     whtr, waistPts,
+    heightIn: state.heightIn,
+    waistIn: state.waistIn,
     strengthEvent: state.strengthEvent, strengthVal: state.strengthVal, strengthPts: strPts,
     coreEvent: state.coreEvent, coreVal: state.coreVal, corePts,
     cardioEvent: state.cardioEvent, cardioVal: state.cardioVal, cardioPts,
@@ -563,8 +565,8 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
   }
 
   // ---- Waist ----
-  const { whtr: waistWhtr, waistPts } = inputs;
-  if (waistWhtr !== null && !isNaN(waistWhtr) && waistPts < 20) {
+  const { whtr: waistWhtr, waistPts, heightIn, waistIn } = inputs;
+  if (waistWhtr !== null && !isNaN(waistWhtr) && waistPts < 20 && heightIn && waistIn) {
     const brackets = [0.599,0.589,0.579,0.569,0.559,0.549,0.539,0.529,0.519,0.509,0.499];
     const pts      = [2.5,  5,    7.5,  10,   12.5, 15,   16,   17,   18,   19,   20  ];
     // Find minimum WHtR drop that achieves needed pts gain
@@ -572,12 +574,25 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
       if (pts[i] > waistPts && brackets[i] < waistWhtr) {
         const gain = pts[i] - waistPts;
         if (gain >= needed) {
+          const targetWaistIn = parseFloat((brackets[i] * heightIn).toFixed(2));
+          const waistInDiff = parseFloat((waistIn - targetWaistIn).toFixed(2));
+          const estLossLow = parseFloat((waistInDiff * 8).toFixed(1));
+          const estLossHigh = parseFloat((waistInDiff * 10).toFixed(1));
+          const estCalLow = Math.round(estLossLow * 3500);
+          const estCalHigh = Math.round(estLossHigh * 3500);
+
           suggestions.push({
             event: 'waist', label: 'WHtR', category: 'waist',
             currentVal: waistWhtr, targetVal: brackets[i],
             currentPts: waistPts, targetPts: pts[i],
             ptGain: gain,
             valDiff: parseFloat((waistWhtr - brackets[i]).toFixed(3)),
+            targetWaistIn,
+            waistInDiff,
+            estLossLow,
+            estLossHigh,
+            estCalLow,
+            estCalHigh,
             direction: 'down', unit: 'WHtR'
           });
           break;
@@ -661,14 +676,28 @@ function renderGoals(r) {
   } else {
     const singles = combos.filter(c => c.items.length === 1);
     const multis  = combos.filter(c => c.items.length > 1);
+    const displayedCombos = [];
 
     if (singles.length) {
       html += '<div class="goal-section-title">⚡ Single-Event Paths</div>';
-      singles.forEach(c => { html += renderComboCard(c); });
+      singles.forEach(c => {
+        displayedCombos.push(c);
+        html += renderComboCard(c);
+      });
     }
     if (multis.length) {
       html += '<div class="goal-section-title">🔀 Combinations</div>';
-      multis.slice(0,4).forEach(c => { html += renderComboCard(c); });
+      multis.slice(0,4).forEach(c => {
+        displayedCombos.push(c);
+        html += renderComboCard(c);
+      });
+    }
+
+    const hasWaistSuggestion = displayedCombos.some(combo =>
+      combo.items.some(item => item.event === 'waist')
+    );
+    if (hasWaistSuggestion) {
+      html += '<p class="goal-disclaimer">WHtR estimates use rules of thumb (~8-10 lbs per 1 inch waist and ~3,500 calories per lb) and can vary by person.</p>';
     }
   }
 
@@ -686,7 +715,7 @@ function renderComboCard(combo) {
     } else if (item.event === 'plank') {
       changeStr = `+${item.valDiff}s → ${fmtTime(item.targetVal)} hold`;
     } else if (item.event === 'waist') {
-      changeStr = `↓ ${item.valDiff} → ≤ ${item.targetVal.toFixed(3)}`;
+      changeStr = `↓ ${item.valDiff} WHtR → ≤ ${item.targetVal.toFixed(3)} (${item.waistInDiff.toFixed(2)} in waist)`;
     } else {
       changeStr = `+${item.valDiff} reps → ${item.targetVal}`;
     }
@@ -695,6 +724,10 @@ function renderComboCard(combo) {
       <span class="combo-change">${changeStr}</span>
       <span class="combo-gain">+${item.ptGain.toFixed(1)} pts</span>
     </div>`;
+
+    if (item.event === 'waist') {
+      html += `<div class="combo-note">Est. weight loss for this waist change: ~${item.estLossLow.toFixed(1)}-${item.estLossHigh.toFixed(1)} lbs (~${item.estCalLow.toLocaleString()}-${item.estCalHigh.toLocaleString()} calories)</div>`;
+    }
   });
   html += `<div class="combo-total">Total gain: +${combo.totalGain.toFixed(1)} pts</div></div>`;
   return html;
