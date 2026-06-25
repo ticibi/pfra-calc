@@ -41,11 +41,10 @@ function getEventPoints(table, value, higherIsBetter) {
     }
     return 0;
   } else {
-    let pts = 0;
     for (let i = 0; i < table.length; i += 2) {
-      if (value <= table[i]) pts = table[i + 1];
+      if (value <= table[i]) return table[i + 1];
     }
-    return pts;
+    return 0;
   }
 }
 
@@ -69,9 +68,36 @@ function parseRunTime(str) {
   str = str.trim();
   if (str.includes(':')) {
     const parts = str.split(':');
-    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    const min = parseInt(parts[0], 10);
+    const secRaw = (parts[1] || '').replace(/\D/g, '').slice(0, 2);
+
+    if (isNaN(min)) return null;
+    if (!secRaw) return min * 60;
+
+    // While typing, treat a single second digit as tens (e.g. 12:3 -> 12:30)
+    let sec = secRaw.length === 1 ? parseInt(secRaw, 10) * 10 : parseInt(secRaw, 10);
+    if (isNaN(sec)) sec = 0;
+    sec = Math.max(0, Math.min(59, sec));
+
+    return min * 60 + sec;
   }
-  return parseInt(str);
+
+  const digits = str.replace(/\D/g, '').slice(0, 4);
+  if (!digits) return null;
+  if (digits.length <= 2) return parseInt(digits, 10) * 60;
+
+  const min = parseInt(digits.slice(0, 2), 10);
+  let sec = parseInt(digits.slice(2), 10);
+  if (isNaN(min)) return null;
+  if (isNaN(sec)) sec = 0;
+  sec = Math.max(0, Math.min(59, sec));
+  return min * 60 + sec;
+}
+
+function formatRunInputValue(raw) {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
 }
 
 // ---- Rating ----
@@ -107,6 +133,40 @@ const state = {
   cardioVal: null,
 };
 
+const PERSONAL_CACHE_KEY = 'af_pfra_personal_v1';
+
+function savePersonalCache() {
+  const payload = {
+    age: state.age,
+    heightIn: state.heightIn,
+    waistIn: state.waistIn,
+  };
+  localStorage.setItem(PERSONAL_CACHE_KEY, JSON.stringify(payload));
+}
+
+function loadPersonalCache() {
+  const raw = localStorage.getItem(PERSONAL_CACHE_KEY);
+  if (!raw) return;
+
+  try {
+    const cached = JSON.parse(raw);
+
+    const age = Number(cached.age);
+    const heightIn = Number(cached.heightIn);
+    const waistIn = Number(cached.waistIn);
+
+    state.age = Number.isFinite(age) ? age : null;
+    state.heightIn = Number.isFinite(heightIn) ? heightIn : null;
+    state.waistIn = Number.isFinite(waistIn) ? waistIn : null;
+
+    document.getElementById('age').value = state.age ?? '';
+    document.getElementById('height_in').value = state.heightIn ?? '';
+    document.getElementById('waist_in').value = state.waistIn ?? '';
+  } catch {
+    // Ignore invalid cache payloads and continue with empty defaults.
+  }
+}
+
 // ================================================================
 // DOM READY
 // ================================================================
@@ -140,6 +200,8 @@ function setupTabs() {
 // CALCULATOR
 // ================================================================
 function setupCalculator() {
+  loadPersonalCache();
+
   // Sex buttons
   document.querySelectorAll('.sex-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -157,6 +219,7 @@ function setupCalculator() {
       state.age      = parseFloat(document.getElementById('age').value) || null;
       state.heightIn = parseFloat(document.getElementById('height_in').value) || null;
       state.waistIn  = parseFloat(document.getElementById('waist_in').value) || null;
+      savePersonalCache();
       updateWhtrLive();
       liveCalc();
     });
@@ -188,10 +251,17 @@ function setupCalculator() {
   // Event value inputs — live recalc
   ['hrpushup_val', 'core_val', 'cardio_val'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
+      if (id === 'cardio_val' && state.cardioEvent === 'run') {
+        const cardioInput = document.getElementById('cardio_val');
+        cardioInput.value = formatRunInputValue(cardioInput.value);
+      }
       readEventInputs();
       liveCalc();
     });
   });
+
+  updateWhtrLive();
+  liveCalc();
 }
 
 function updateSilhouette() {
