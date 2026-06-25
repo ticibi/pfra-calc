@@ -660,6 +660,12 @@ body::before {
 .combo-event { font-weight: 600; color: var(--text); }
 .combo-change { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
 .combo-gain { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--excellent); white-space: nowrap; }
+.combo-alt {
+  margin: 0 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--gold);
+}
 .combo-total {
   margin-top: 6px; padding-top: 5px;
   border-top: 1px solid var(--border);

@@ -462,6 +462,19 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
   const data = SCORE_DATA[sex][ageGroup];
   const suggestions = [];
 
+  function getMinThresholdForPoints(table, targetPts) {
+    if (!table) return null;
+    let minThresh = null;
+    for (let i = 0; i < table.length; i += 2) {
+      const thresh = table[i];
+      const pts = table[i + 1];
+      if (pts >= targetPts && (minThresh === null || thresh < minThresh)) {
+        minThresh = thresh;
+      }
+    }
+    return minThresh;
+  }
+
   // Helper: walk a table and find the SMALLEST val change that yields >= neededPtGain
   // For reps (higherIsBetter=true): find minimum threshold > currentVal where pts gain >= neededGain
   // For run (higherIsBetter=false): find maximum threshold < currentVal where pts gain >= neededGain
@@ -496,12 +509,27 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
       const hit = findMinChange(table, strVal, strPts, needed, true);
       if (hit) {
         const lbl = strEv === 'hr_pushups' ? 'Hand-Release Push-ups' : 'Push-ups';
+        const altStrengthEvents = ['hr_pushups', 'pushups'].filter(ev => ev !== strEv);
+        const alternatives = altStrengthEvents
+          .map(ev => {
+            const target = getMinThresholdForPoints(data[ev], hit.pts);
+            if (target === null) return null;
+            return {
+              event: ev,
+              label: ev === 'hr_pushups' ? 'HR Push-ups' : 'Push-ups',
+              targetVal: target,
+              unit: 'reps'
+            };
+          })
+          .filter(Boolean);
+
         suggestions.push({
           event: strEv, label: lbl, category: 'strength',
           currentVal: strVal, targetVal: hit.thresh,
           currentPts: strPts, targetPts: hit.pts,
           ptGain: hit.gain,
           valDiff: hit.thresh - strVal,
+          alternatives,
           direction: 'up', unit: 'reps'
         });
       }
@@ -517,12 +545,27 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
       const hit = findMinChange(table, coreVal, corePts, needed, true);
       if (hit) {
         const lbl = coreEv === 'situps' ? 'Sit-ups' : coreEv === 'rev_crunch' ? 'Rev. Crunches' : 'Plank';
+        const altCoreEvents = ['situps', 'rev_crunch', 'plank'].filter(ev => ev !== coreEv);
+        const alternatives = altCoreEvents
+          .map(ev => {
+            const target = getMinThresholdForPoints(data[ev], hit.pts);
+            if (target === null) return null;
+            return {
+              event: ev,
+              label: ev === 'situps' ? 'Sit-ups' : ev === 'rev_crunch' ? 'Rev. Crunches' : 'Plank',
+              targetVal: target,
+              unit: ev === 'plank' ? 'sec' : 'reps'
+            };
+          })
+          .filter(Boolean);
+
         suggestions.push({
           event: coreEv, label: lbl, category: 'core',
           currentVal: coreVal, targetVal: hit.thresh,
           currentPts: corePts, targetPts: hit.pts,
           ptGain: hit.gain,
           valDiff: hit.thresh - coreVal,
+          alternatives,
           direction: 'up', unit: coreEv === 'plank' ? 'sec' : 'reps'
         });
       }
@@ -724,6 +767,16 @@ function renderComboCard(combo) {
       <span class="combo-change">${changeStr}</span>
       <span class="combo-gain">+${item.ptGain.toFixed(1)} pts</span>
     </div>`;
+
+    if (item.alternatives && item.alternatives.length) {
+      const altText = item.alternatives
+        .map(alt => {
+          if (alt.event === 'plank') return `OR ${fmtTime(alt.targetVal)} Plank`;
+          return `OR ${alt.targetVal} ${alt.label}`;
+        })
+        .join(' · ');
+      html += `<div class="combo-alt">${altText}</div>`;
+    }
 
     if (item.event === 'waist') {
       html += `<div class="combo-note">Est. weight loss for this waist change: ~${item.estLossLow.toFixed(1)}-${item.estLossHigh.toFixed(1)} lbs (~${item.estCalLow.toLocaleString()}-${item.estCalHigh.toLocaleString()} calories)</div>`;
