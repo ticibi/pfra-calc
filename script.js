@@ -49,6 +49,8 @@ function getEventPoints(table, value, higherIsBetter) {
 }
 
 function scoreEvent(sex, ageGroup, event, value) {
+  // A run must have a positive duration; zero is not a completed run.
+  if (event === 'run' && !(value > 0)) return 0;
   const data = SCORE_DATA[sex][ageGroup];
   if (!data || !data[event]) return 0;
   return getEventPoints(data[event], value, event !== 'run');
@@ -64,47 +66,58 @@ function fmtTime(sec) {
 }
 
 function parseRunTime(str) {
-  if (!str) return null;
-  str = str.trim();
-  if (str.includes(':')) {
-    const parts = str.split(':');
-    const min = parseInt(parts[0], 10);
-    const secRaw = (parts[1] || '').replace(/\D/g, '').slice(0, 2);
-
-    if (isNaN(min)) return null;
-    if (!secRaw) return min * 60;
-
-    // While typing, treat a single second digit as tens (e.g. 12:3 -> 12:30)
-    let sec = secRaw.length === 1 ? parseInt(secRaw, 10) * 10 : parseInt(secRaw, 10);
-    if (isNaN(sec)) sec = 0;
-    sec = Math.max(0, Math.min(59, sec));
-
-    return min * 60 + sec;
-  }
-
-  const digits = str.replace(/\D/g, '').slice(0, 4);
-  if (!digits) return null;
-  if (digits.length <= 2) return parseInt(digits, 10) * 60;
-
-  const min = parseInt(digits.slice(0, 2), 10);
-  let sec = parseInt(digits.slice(2), 10);
-  if (isNaN(min)) return null;
-  if (isNaN(sec)) sec = 0;
-  sec = Math.max(0, Math.min(59, sec));
-  return min * 60 + sec;
+  if (!/^\d{2}:[0-5]\d$/.test(str || '')) return null;
+  const [minutes, seconds] = str.split(':').map(Number);
+  return minutes * 60 + seconds;
 }
 
 function formatRunInputValue(raw) {
-  const digits = (raw || '').replace(/\D/g, '').slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 4).padEnd(4, '0');
+  return digits.slice(0, 2) + ':' + digits.slice(2);
+}
+
+function setupRunTimeInput() {
+  const input = document.getElementById('cardio_val');
+  input.addEventListener('focus', () => {
+    if (state.cardioEvent === 'run') input.select();
+  });
+  input.addEventListener('beforeinput', event => {
+    if (state.cardioEvent !== 'run') return;
+    const inserted = event.data;
+    if (!event.inputType.startsWith('delete') && inserted == null) return;
+    event.preventDefault();
+    let digits = input.value.replace(/\D/g, '').padEnd(4, '0').split('');
+    const position = n => Math.min(4, n > 2 ? n - 1 : n);
+    let start = position(input.selectionStart || 0);
+    const end = position(input.selectionEnd || 0);
+    if (event.inputType.startsWith('delete')) {
+      if (start === end && event.inputType === 'deleteContentBackward') start = Math.max(0, start - 1);
+      for (let i = start; i < Math.max(end, start + 1) && i < 4; i++) digits[i] = '0';
+      input.dataset.runComplete = 'false';
+    } else {
+      if (!/^[0-9:]+$/.test(inserted)) return;
+      if (end > start) for (let i = start; i < end; i++) digits[i] = '0';
+      for (const digit of inserted.replace(/:/g, '')) {
+        if (start >= 4) break;
+        if (start === 2 && Number(digit) > 5) return;
+        digits[start++] = digit;
+      }
+      input.dataset.runComplete = String(start === 4);
+    }
+    input.value = digits.slice(0, 2).join('') + ':' + digits.slice(2).join('');
+    const caret = start >= 2 ? start + 1 : start;
+    input.setSelectionRange(caret, caret);
+    readEventInputs();
+    liveCalc();
+  });
 }
 
 // ---- Rating ----
-function getRating(score) {
+function getRating(score, physicalPoints = []) {
+  // AFMAN 36-2905 para. 3.6.1: any missed physical minimum fails the assessment.
+  if (physicalPoints.some(points => points <= 0)) return { label: 'Unsatisfactory', cls: 'unsat' };
   if (score >= 90) return { label: 'Excellent',      cls: 'excellent' };
   if (score >= 75) return { label: 'Satisfactory',   cls: 'satisfactory' };
-  if (score >= 70) return { label: 'Marginal',        cls: 'marginal' };
   return               { label: 'Unsatisfactory',  cls: 'unsat' };
 }
 
@@ -174,7 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTabs();
   setupCalculator();
   setupHAMR();
-  renderHAMRTable();
   setupScoreCharts();
   setupPrint();
 });
@@ -209,7 +221,6 @@ function setupCalculator() {
       btn.classList.add('active');
       state.sex = btn.dataset.sex;
       syncChartSexFromCalculator();
-      updateSilhouette();
       liveCalc();
     });
   });
@@ -242,7 +253,20 @@ function setupCalculator() {
         state.coreEvent = pill.dataset.val;
         document.getElementById('core-unit').textContent = pill.dataset.val === 'plank' ? 'sec' : 'reps';
       } else if (group === 'cardio_event') {
+        const changed = state.cardioEvent !== pill.dataset.val;
         state.cardioEvent = pill.dataset.val;
+        const cardioInput = document.getElementById('cardio_val');
+        if (changed) {
+          cardioInput.value = state.cardioEvent === 'run' ? '00:00' : '';
+          cardioInput.dataset.runComplete = 'false';
+          cardioInput.dataset.hamrMode = 'reps';
+        }
+        cardioInput.inputMode = state.cardioEvent === 'run' ? 'numeric' : 'decimal';
+        if (state.cardioEvent === 'run') {
+          cardioInput.maxLength = 5;
+          cardioInput.pattern = '[0-9]{2}:[0-5][0-9]';
+        } else { cardioInput.removeAttribute('maxlength'); cardioInput.removeAttribute('pattern'); }
+        cardioInput.closest('.event-input-row').classList.toggle('run-time-row', state.cardioEvent === 'run');
         document.getElementById('cardio-unit').textContent = pill.dataset.val === 'hamr' ? 'reps' : 'mm:ss';
         document.getElementById('cardio_val').placeholder = pill.dataset.val === 'hamr' ? '0' : '00:00';
       }
@@ -250,12 +274,17 @@ function setupCalculator() {
     });
   });
 
+  setupRunTimeInput();
+  setupHAMRInputSwap();
+
   // Event value inputs — live recalc
   ['hrpushup_val', 'core_val', 'cardio_val'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
       if (id === 'cardio_val' && state.cardioEvent === 'run') {
         const cardioInput = document.getElementById('cardio_val');
-        cardioInput.value = formatRunInputValue(cardioInput.value);
+        const raw = cardioInput.value;
+        cardioInput.dataset.runComplete = String(/^\d{2}:[0-5]\d$/.test(raw) || /^\d{2}[0-5]\d$/.test(raw));
+        cardioInput.value = formatRunInputValue(raw);
       }
       readEventInputs();
       liveCalc();
@@ -266,12 +295,6 @@ function setupCalculator() {
   liveCalc();
 }
 
-function updateSilhouette() {
-  const isMale = state.sex === 'Male';
-  document.getElementById('stick-male').style.display   = isMale ? '' : 'none';
-  document.getElementById('stick-female').style.display = isMale ? 'none' : '';
-  // Female waist bracket is baked into stick-female at y=83; male at y=95 — no JS needed
-}
 
 function updateWhtrLive() {
   const el = document.getElementById('whtr_live');
@@ -298,15 +321,22 @@ function readEventInputs() {
   // Cardio
   const cardioRaw = document.getElementById('cardio_val').value;
   if (state.cardioEvent === 'run') {
-    state.cardioVal = parseRunTime(cardioRaw);
+    state.cardioVal = document.getElementById('cardio_val').dataset.runComplete === 'true' ? parseRunTime(cardioRaw) : null;
   } else {
-    state.cardioVal = cardioRaw !== '' ? parseInt(cardioRaw) : null;
+    state.cardioVal = parseHAMRInput(cardioRaw, document.getElementById('cardio_val').dataset.hamrMode);
   }
 }
 
 function liveCalc() {
+  readEventInputs();
+  updateHAMRInputSwap();
+  updateInputScoreBadges();
   // Need sex + age + height + waist at minimum to show anything
   if (!state.sex || !state.age || !state.heightIn || !state.waistIn) {
+    document.getElementById('input-total-score').innerHTML = '—<small> / 100</small>';
+    const totalRating = document.getElementById('input-total-rating');
+    totalRating.textContent = 'Enter your details';
+    totalRating.className = 'input-total-rating';
     return;
   }
 
@@ -322,7 +352,7 @@ function liveCalc() {
     ? scoreEvent(state.sex, ageGroup, state.cardioEvent, state.cardioVal) : 0;
 
   const total = parseFloat((waistPts + strPts + corePts + cardioPts).toFixed(1));
-  const rating = getRating(total);
+  const rating = getRating(total, [strPts, corePts, cardioPts]);
 
   renderScorePanel(total, rating, waistPts, strPts, corePts, cardioPts);
 
@@ -369,6 +399,10 @@ function whtrColorClass(pts) {
 }
 
 function renderScorePanel(total, rating, waistPts, strPts, corePts, cardioPts) {
+  document.getElementById('input-total-score').innerHTML = total.toFixed(1) + '<small> / 100</small>';
+  const inputRating = document.getElementById('input-total-rating');
+  inputRating.textContent = rating.label;
+  inputRating.className = 'input-total-rating ' + rating.cls;
   // Big score
   document.getElementById('score-display').textContent = total.toFixed(1);
 
@@ -574,7 +608,7 @@ function findImprovements(sex, ageGroup, inputs, totalScore, targetScore) {
 
   // ---- Cardio ----
   const { cardioEvent: cardEv, cardioVal, cardioPts } = inputs;
-  if (cardEv && cardioVal !== null && !isNaN(cardioVal) && data[cardEv]) {
+  if (cardEv && cardioVal !== null && !isNaN(cardioVal) && (cardEv !== 'run' || cardioVal > 0) && data[cardEv]) {
     const table  = data[cardEv];
     const maxPts = table[1];
     if (cardioPts < maxPts) {
@@ -789,149 +823,77 @@ function renderComboCard(combo) {
 // ================================================================
 // HAMR EXPLORER
 // ================================================================
+function getHAMRStats(reps) {
+  if (!Number.isInteger(reps) || reps < 0 || reps > 100) return null;
+  if (reps === 0) return { reps, elapsed: 0, distance: 0, miles: 0, avgBeep: null, mph: null, lap: null, twoMile: null };
+  const data = getHAMRRepData(reps);
+  if (!data) return null;
+  const distance = reps * 20;
+  const speed = distance / data.elapsed;
+  return { reps, elapsed: data.elapsed, distance, miles: distance / 1609.344,
+    avgBeep: data.elapsed / reps, mph: speed * 3600 / 1609.344,
+    lap: 400 / speed, twoMile: 3218.688 / speed };
+}
+
 function setupHAMR() {
-  const slider  = document.getElementById('hamr-rep-slider');
-  const input   = document.getElementById('hamr-rep-input');
-  const display = document.getElementById('hamr-rep-display');
-
-  function syncHAMR(val) {
-    val = Math.max(1, Math.min(100, parseInt(val) || 1));
-    slider.value = val;
-    input.value  = val;
-    display.textContent = val;
-    updateHAMRDisplay(val);
+  const input = document.getElementById('hamr-stats-input');
+  const swap = document.getElementById('hamr-stats-swap');
+  const label = document.getElementById('hamr-stats-label');
+  const error = document.getElementById('hamr-stats-error');
+  const down = document.getElementById('hamr-step-down');
+  const up = document.getElementById('hamr-step-up');
+  let mode = 'reps';
+  function render() {
+    const reps = parseHAMRInput(input.value, mode);
+    const stats = getHAMRStats(reps);
+    down.disabled = !stats || reps <= 0;
+    up.disabled = !stats || reps >= 100;
+    const data = stats && reps > 0 ? getHAMRRepData(reps) : null;
+    swap.textContent = mode === 'level' ? (stats ? reps : '—') + ' reps'
+      : data ? data.level + '-' + data.repInLevel : reps === 0 ? '0-0' : 'L-R';
+    swap.setAttribute('aria-label', mode === 'level' ? 'Switch to total reps input' : 'Switch to level and shuttle input');
+    swap.title = mode === 'level' ? 'Enter total reps' : 'Enter level–shuttle';
+    label.textContent = mode === 'level' ? 'Level–shuttle' : 'Total reps';
+    input.inputMode = mode === 'level' ? 'text' : 'numeric';
+    input.placeholder = mode === 'level' ? '6-7' : '48';
+    const invalid = input.value.trim() !== '' && !stats;
+    error.hidden = !invalid;
+    error.textContent = invalid ? 'Enter 0–100 reps or a valid level–shuttle within that range.' : '';
+    input.setAttribute('aria-invalid', String(invalid));
+    const values = {
+      'hamr-elapsed': stats ? fmtTime(stats.elapsed) : '—',
+      'hamr-beep': stats && stats.avgBeep != null ? stats.avgBeep.toFixed(2) + ' s' : '—',
+      'hamr-speed-mph': stats && stats.mph != null ? stats.mph.toFixed(2) + ' mph' : '—',
+      'hamr-lap-pace': stats && stats.lap != null ? fmtTime(stats.lap) : '—',
+      'hamr-equiv': stats && stats.twoMile != null ? fmtTime(stats.twoMile) : '—',
+      'hamr-dist-m': stats ? stats.distance.toLocaleString() + ' m' : '—',
+      'hamr-dist-mi': stats ? stats.miles.toFixed(3) + ' mi' : '—'
+    };
+    Object.entries(values).forEach(([id, value]) => document.getElementById(id).textContent = value);
   }
-
-  slider.addEventListener('input', () => syncHAMR(slider.value));
-  input.addEventListener('input',  () => syncHAMR(input.value));
-  syncHAMR(54);
-
-  // Comparison
-  const cmpSlider = document.getElementById('hamr-cmp-slider');
-  const cmpInput  = document.getElementById('hamr-cmp-input');
-
-  function syncCmp(val) {
-    val = Math.max(1, Math.min(100, parseInt(val) || 1));
-    cmpSlider.value = val;
-    cmpInput.value  = val;
-    updateHAMRComparison();
+  function step(delta) {
+    const reps = parseHAMRInput(input.value, mode);
+    if (!getHAMRStats(reps)) return;
+    const next = Math.max(0, Math.min(100, reps + delta));
+    const data = next > 0 ? getHAMRRepData(next) : null;
+    input.value = mode === 'reps' ? String(next) : data ? data.level + '-' + data.repInLevel : '0-0';
+    render();
   }
-
-  cmpSlider.addEventListener('input', () => syncCmp(cmpSlider.value));
-  cmpInput.addEventListener('input',  () => syncCmp(cmpInput.value));
-  syncCmp(72);
-}
-
-function updateHAMRDisplay(rep) {
-  const d = getHAMRRepData(rep);
-  if (!d) return;
-
-  // Level – Rep (e.g. "7 – 10")
-  document.getElementById('hamr-level-rep').textContent = `${d.level} – ${d.repInLevel}`;
-  document.getElementById('hamr-elapsed').textContent   = fmtTime(d.elapsed);
-  document.getElementById('hamr-beep').textContent      = d.secPerBeep.toFixed(1) + 's';
-  document.getElementById('hamr-speed-mph').textContent = d.mph.toFixed(2) + ' mph';
-  document.getElementById('hamr-speed-ms').textContent  = d.ms.toFixed(2) + ' m/s';
-  document.getElementById('hamr-equiv').textContent     = fmtTime(d.equiv2mi);
-
-  // Distance in meters and miles
-  const distM  = rep * 20;
-  const distMi = (distM * 0.000621371).toFixed(3);
-  document.getElementById('hamr-dist-m').textContent  = distM + ' m';
-  document.getElementById('hamr-dist-mi').textContent = distMi + ' mi';
-
-  // Track lap pace: how fast a lap (¼ mile = 402.336m) at this speed
-  // Speed in m/s → time for 402.336m = 402.336 / ms seconds
-  const lapSec = 402.336 / d.ms;
-  document.getElementById('hamr-lap-pace').textContent = fmtTime(lapSec);
-
-  updateHAMRComparison();
-}
-
-function updateHAMRComparison() {
-  const curRep = parseInt(document.getElementById('hamr-rep-input').value);
-  const tgtRep = parseInt(document.getElementById('hamr-cmp-input').value);
-  const el = document.getElementById('hamr-comparison');
-
-  if (isNaN(curRep) || isNaN(tgtRep)) { el.innerHTML = ''; return; }
-
-  const cur = getHAMRRepData(Math.min(curRep, 100));
-  const tgt = getHAMRRepData(Math.min(tgtRep, 100));
-  if (!cur || !tgt) return;
-
-  if (tgtRep <= curRep) {
-    el.innerHTML = '<p class="dimmed">Set a target higher than current reps.</p>';
-    return;
-  }
-
-  const timeDiff = cur.equiv2mi - tgt.equiv2mi;
-  el.innerHTML = `
-    <div class="cmp-grid">
-      <div class="cmp-col">
-        <div class="cmp-label">Current — ${curRep} reps</div>
-        <div class="cmp-val">${fmtTime(cur.equiv2mi)}</div>
-        <div class="cmp-sub">Lvl ${cur.level} · ${cur.mph} mph</div>
-      </div>
-      <div class="cmp-arrow">→</div>
-      <div class="cmp-col target">
-        <div class="cmp-label">Target — ${tgtRep} reps</div>
-        <div class="cmp-val">${fmtTime(tgt.equiv2mi)}</div>
-        <div class="cmp-sub">Lvl ${tgt.level} · ${tgt.mph} mph</div>
-      </div>
-    </div>
-    <div class="cmp-delta">+${tgtRep - curRep} reps = ${fmtTime(timeDiff)} faster 2-mile equivalent</div>
-  `;
-}
-
-// ================================================================
-// HAMR TABLE — grouped by level, compact cells
-// ================================================================
-function renderHAMRTable(filterRep) {
-  const container = document.getElementById('hamr-level-groups');
-  let html = '';
-
-  HAMR_LEVELS.forEach(lvl => {
-    // Collect reps for this level (apply filter if set)
-    const repData = [];
-    for (let r = lvl.repStart; r <= lvl.repEnd; r++) {
-      if (filterRep !== undefined && r !== filterRep) continue;
-      repData.push(getHAMRRepData(r));
-    }
-    if (repData.length === 0) return;
-
-    html += `<div class="hamr-level-group">
-      <div class="hamr-level-header">
-        <span class="hamr-level-badge">LVL ${lvl.level}</span>
-        <span class="hamr-level-meta">
-          <span class="sec-per-shuttle">${lvl.secPerBeep}s</span>/shuttle
-          &nbsp;·&nbsp; ${lvl.mph} mph
-          &nbsp;·&nbsp; reps ${lvl.repStart}–${lvl.repEnd}
-        </span>
-      </div>
-      <div class="hamr-reps-grid">`;
-
-    repData.forEach(d => {
-      html += `<div class="hamr-rep-cell">
-        <div class="cell-lv-rep">${lvl.level}&nbsp;–&nbsp;${d.repInLevel}</div>
-        <div class="cell-shuttles">${d.rep} shuttles</div>
-        <div class="cell-equiv">${fmtTime(d.equiv2mi)}</div>
-        <div class="cell-elapsed">${fmtTime(d.elapsed)}</div>
-      </div>`;
-    });
-
-    html += `</div></div>`;
+  down.addEventListener('click', () => step(-1));
+  up.addEventListener('click', () => step(1));
+  input.addEventListener('input', render);
+  swap.addEventListener('click', () => {
+    const reps = parseHAMRInput(input.value, mode);
+    if (input.value.trim() && !getHAMRStats(reps)) return;
+    const data = reps > 0 ? getHAMRRepData(reps) : null;
+    mode = mode === 'reps' ? 'level' : 'reps';
+    input.value = reps == null ? '' : mode === 'reps' ? String(reps)
+      : data ? data.level + '-' + data.repInLevel : '0-0';
+    render();
+    input.focus(); input.select();
   });
-
-  container.innerHTML = html || '<p class="dimmed">No reps match.</p>';
+  render();
 }
-
-// Wire search
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('hamr-table-search').addEventListener('input', e => {
-    const v = parseInt(e.target.value.trim());
-    renderHAMRTable(isNaN(v) ? undefined : v);
-  });
-});
 
 // ================================================================
 // SCORE CHARTS
@@ -1001,6 +963,8 @@ function renderScoreChart() {
   const meta = EVENT_META[event];
   const wrap = document.getElementById('chart-columns-wrap');
   const title = document.getElementById('chart-table-title');
+  const minimumLabel = document.getElementById('chart-minimum');
+  minimumLabel.hidden = true;
 
   if (event === 'whtr') {
     title.textContent = 'WHtR — All Ages & Sexes';
@@ -1014,6 +978,14 @@ function renderScoreChart() {
   if (!data || !data[event]) { wrap.innerHTML = '<p class="dimmed">No data.</p>'; return; }
 
   const table = data[event];
+  const minimum = getEventMin(sex, age, event);
+  const minimumPoints = table[table.length - 1];
+  minimumLabel.hidden = false;
+  minimumLabel.textContent = event === 'run'
+    ? 'Component requirement: finish in ' + fmtTime(minimum) + ' or faster · ' + minimumPoints + ' pts at the limit'
+    : event === 'plank'
+      ? 'Minimum hold: ' + fmtTime(minimum) + ' · ' + minimumPoints + ' pts'
+      : 'Minimum: ' + minimum + ' reps · ' + minimumPoints + ' pts';
   const isCardio = event === 'run' || event === 'hamr';
 
   // Group rows by unique points value
@@ -1046,6 +1018,7 @@ function renderScoreChart() {
         <div class="chart-pts-sub">pts</div>
       </div>`;
 
+    if (vals.includes(minimum)) html += '<div class="chart-minimum-tag">' + (event === 'run' ? 'Time limit' : 'Minimum') + '</div>';
     thresholds.forEach(t => {
       html += `<div class="chart-threshold ${tc}-bg">${t}</div>`;
     });
@@ -1075,7 +1048,7 @@ function renderWhtrChart(wrap) {
   let html = '';
   rows.forEach(r => {
     const tc = tierClass(r.pts, false);
-    html += `<div class="chart-band" style="min-width:110px;">
+    html += `<div class="chart-band">
       <div class="chart-band-header">
         <div class="chart-pts-badge ${tc}">${r.pts}</div>
         <div class="chart-pts-sub">pts</div>
@@ -1091,4 +1064,125 @@ function renderWhtrChart(wrap) {
 // ================================================================
 function setupPrint() {
   document.getElementById('print-btn')?.addEventListener('click', () => window.print());
+}
+// Route native exercise pickers through the existing event controls.
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.event-select').forEach(select => {
+    select.addEventListener('change', () => {
+      const button = document.querySelector('.pill[data-group="' + select.dataset.eventGroup + '"][data-val="' + select.value + '"]');
+      if (button) button.click();
+    });
+  });
+});
+
+// Component colors use the same 90% / 75% rating boundaries as the total score.
+function updateInputScoreBadges() {
+  const heightHint = document.getElementById('hint-height_in');
+  const hasHeight = Number.isFinite(state.heightIn) && state.heightIn > 0;
+  heightHint.hidden = !hasHeight;
+  if (hasHeight) {
+    const feet = Math.floor(state.heightIn / 12);
+    const inches = Number((state.heightIn % 12).toFixed(2));
+    heightHint.textContent = feet + "′" + inches + "″";
+    heightHint.setAttribute('aria-label', feet + ' feet ' + inches + ' inches');
+  } else heightHint.textContent = '';
+  const ageHint = document.getElementById('hint-age');
+  const hasAge = Number.isFinite(state.age) && state.age >= 17 && state.age <= 80;
+  ageHint.hidden = !hasAge;
+  ageHint.textContent = hasAge ? getAgeGroup(state.age).replace('60 +', '60+').replace(' - ', '–') : '';
+  ageHint.setAttribute('aria-label', 'Scoring age range: ' + ageHint.textContent);
+  const ratioHint = document.getElementById('waist-ratio-hint');
+  const hasRatio = state.heightIn > 0 && state.waistIn > 0;
+  ratioHint.hidden = !hasRatio;
+  ratioHint.textContent = hasRatio ? (state.waistIn / state.heightIn).toFixed(3) : '';
+  ratioHint.setAttribute('aria-label', hasRatio ? 'Waist-to-height ratio: ' + ratioHint.textContent : 'Waist-to-height ratio');
+  const ageReady = Number.isFinite(state.age) && state.age >= 17 && state.age <= 80 && state.sex;
+  const ageGroup = ageReady ? getAgeGroup(state.age) : null;
+  const components = [
+    { id: 'hrpushup_val', label: 'Strength', event: state.strengthEvent, value: state.strengthVal, max: 15 },
+    { id: 'core_val', label: 'Core', event: state.coreEvent, value: state.coreVal, max: 15 },
+    { id: 'cardio_val', label: 'Run', event: state.cardioEvent, value: state.cardioVal, max: 50 },
+    { id: 'waist_in', label: 'Waist-to-height ratio', max: 20 }
+  ];
+  components.forEach(component => {
+    const badge = document.getElementById('badge-' + component.id);
+    const isWaist = component.id === 'waist_in';
+    const ready = isWaist
+      ? state.heightIn > 0 && state.waistIn > 0
+      : ageReady && Number.isFinite(component.value) && component.value >= 0;
+    badge.hidden = !ready;
+    const gap = document.getElementById('max-gap-' + component.id);
+    if (gap) gap.hidden = true;
+    if (!ready) { badge.textContent = ''; return; }
+    const points = isWaist ? getWhtrPoints(state.waistIn / state.heightIn)
+      : scoreEvent(state.sex, ageGroup, component.event, component.value);
+    const rating = points / component.max >= .90 ? 'excellent'
+      : points / component.max >= .75 ? 'satisfactory' : 'unsat';
+    const label = rating === 'unsat' ? 'Unsatisfactory' : rating[0].toUpperCase() + rating.slice(1);
+    badge.className = 'input-score-badge ' + rating;
+    badge.classList.toggle('maxed', points >= component.max);
+    badge.textContent = String(points);
+    badge.title = component.label + ': ' + points + ' / ' + component.max + ' pts · ' + label;
+    badge.setAttribute('aria-label', badge.title);
+    if (gap && !(component.event === 'run' && component.value <= 0)) {
+      const target = getEventMax(state.sex, ageGroup, component.event);
+      const remaining = Math.max(0, component.event === 'run' ? component.value - target : target - component.value);
+      gap.hidden = target == null;
+      const unit = component.event === 'plank' ? 'seconds' : 'reps';
+      gap.textContent = remaining === 0 ? 'Max' : component.event === 'run'
+        ? '−' + fmtTime(remaining) : '+' + remaining + (component.event === 'plank' ? 's' : '');
+      gap.title = remaining === 0 ? 'Full points reached' : component.event === 'run'
+        ? fmtTime(remaining) + ' faster for full points'
+        : remaining + ' more ' + unit + ' for full points';
+      gap.setAttribute('aria-label', gap.title);
+    }
+  });
+}
+
+function parseHAMRInput(raw, mode) {
+  if (!raw.trim()) return null;
+  if (mode !== 'level') return /^\d+$/.test(raw) ? Number(raw) : null;
+  if (raw === '0-0') return 0;
+  const match = raw.match(/^(\d{1,2})-(\d{1,2})$/);
+  if (!match) return null;
+  const level = HAMR_LEVELS.find(item => item.level === Number(match[1]));
+  const shuttle = Number(match[2]);
+  return level && shuttle >= 1 && shuttle <= level.repEnd - level.repStart + 1
+    ? level.repStart + shuttle - 1 : null;
+}
+
+function setupHAMRInputSwap() {
+  document.getElementById('hamr-input-swap').addEventListener('click', () => {
+    const input = document.getElementById('cardio_val');
+    const reps = state.cardioVal;
+    const data = reps > 0 ? getHAMRRepData(reps) : null;
+    const toLevel = input.dataset.hamrMode !== 'level';
+    // Keep unconvertible totals editable instead of discarding them.
+    if (toLevel && reps > 0 && !data) return;
+    input.dataset.hamrMode = toLevel ? 'level' : 'reps';
+    input.value = reps == null ? '' : toLevel
+      ? data ? data.level + '-' + data.repInLevel : '0-0' : String(reps);
+    liveCalc();
+    input.focus();
+    input.select();
+  });
+}
+
+function updateHAMRInputSwap() {
+  const input = document.getElementById('cardio_val');
+  const button = document.getElementById('hamr-input-swap');
+  const isHAMR = state.cardioEvent === 'hamr';
+  button.hidden = !isHAMR;
+  input.closest('.event-input-row').classList.toggle('hamr-input-row', isHAMR);
+  if (!isHAMR) return;
+  const levelMode = input.dataset.hamrMode === 'level';
+  const data = state.cardioVal > 0 ? getHAMRRepData(state.cardioVal) : null;
+  button.textContent = levelMode ? (state.cardioVal == null ? '—' : state.cardioVal) + ' reps'
+    : data ? data.level + '-' + data.repInLevel : state.cardioVal === 0 ? '0-0' : 'L-R';
+  button.setAttribute('aria-label', levelMode ? 'Switch to total repetitions input' : 'Switch to level and shuttle input');
+  button.title = levelMode ? 'Total reps — tap to enter reps' : 'Level–shuttle — tap to enter level–shuttle';
+  input.placeholder = levelMode ? '6-7' : '0';
+  input.inputMode = levelMode ? 'text' : 'numeric';
+  input.setAttribute('aria-label', levelMode ? 'HAMR level and shuttle, for example 6-7' : 'HAMR total repetitions');
+  document.getElementById('cardio-unit').textContent = levelMode ? 'level-shuttle' : 'reps';
 }

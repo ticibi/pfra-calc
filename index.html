@@ -12,13 +12,12 @@
   <div class="header-inner">
     <div class="logo">
       <div class="logo-hex">AF</div>
-      <div class="logo-text">PFRA <span>Calculator</span></div>
+      <div class="brand-copy"><div class="logo-text">PFRA <span>Calculator</span></div><p class="brand-subtitle">vibe coded by ticibi with gpt-6</p></div>
     </div>
-    <nav class="tab-nav">
-      <button class="tab-btn active" data-tab="calculator">Score Calc</button>
-      <button class="tab-btn" data-tab="score-charts">Score Charts</button>
-      <button class="tab-btn" data-tab="hamr-explorer">HAMR Explorer</button>
-      <button class="tab-btn" data-tab="hamr-table">HAMR Table</button>
+    <nav class="tab-nav" aria-label="Main navigation">
+      <button class="tab-btn active" data-tab="calculator">Calculator</button>
+      <button class="tab-btn" data-tab="score-charts">Charts</button>
+      <button class="tab-btn" data-tab="hamr-explorer">HAMR</button>
     </nav>
   </div>
 </header>
@@ -36,7 +35,6 @@
 
         <!-- PERSONAL: Silhouette + inputs -->
         <div class="card personal-card">
-          <div class="card-eyebrow">Personal</div>
 
           <div class="personal-body">
             <!-- Silhouette column -->
@@ -53,87 +51,23 @@
 
                 <!-- Age above head -->
                 <div class="sil-field sil-field-age">
-                  <label class="field-label">Age</label>
-                  <input type="number" id="age" class="sil-input" min="17" max="80" placeholder="28">
+                  <label class="field-label" for="age">Age</label>
+                  <span class="scored-input scored-personal"><input type="number" id="age" class="sil-input" min="17" max="80" placeholder="28"><span id="hint-age" class="input-max-gap" hidden></span></span>
                 </div>
 
                 <!-- Height input (right of head, top) -->
                 <div class="sil-field sil-field-height">
-                  <label class="field-label">Height <span class="unit-hint">in</span></label>
-                  <input type="number" id="height_in" class="sil-input" min="48" max="84" step="0.5" placeholder="69">
+                  <label class="field-label" for="height_in">Height <span class="unit-hint">in</span></label>
+                  <span class="scored-input scored-personal"><input type="number" id="height_in" class="sil-input" min="48" max="84" step="0.5" placeholder="69"><span id="hint-height_in" class="input-max-gap" hidden></span></span>
                 </div>
 
                 <!-- Waist input (right, middle) -->
                 <div class="sil-field sil-field-waist">
-                  <label class="field-label">Waist <span class="unit-hint">in</span></label>
-                  <input type="number" id="waist_in" class="sil-input" min="20" max="60" step="0.25" placeholder="32">
+                  <label class="field-label" for="waist_in">Waist <span class="unit-hint">in</span></label>
+                  <span class="scored-input scored-personal"><input type="number" id="waist_in" class="sil-input" min="20" max="60" step="0.25" placeholder="32"><span id="badge-waist_in" class="input-score-badge" role="status" hidden></span><span id="waist-ratio-hint" class="input-max-gap" hidden></span></span>
                 </div>
 
                 <!-- The stick figure SVG -->
-                <svg id="stick-svg" viewBox="0 0 80 200" xmlns="http://www.w3.org/2000/svg">
-                  <!-- height bracket lines -->
-                  <line x1="62" y1="8" x2="68" y2="8"   stroke="var(--blue)" stroke-width="1.5"/>
-                  <line x1="65" y1="8" x2="65" y2="192"  stroke="var(--blue)" stroke-width="1" stroke-dasharray="3 2" opacity="0.5"/>
-                  <line x1="62" y1="192" x2="68" y2="192" stroke="var(--blue)" stroke-width="1.5"/>
-
-                  <!-- waist bracket -->
-                  <line x1="60" y1="95" x2="66" y2="95"  stroke="var(--gold)" stroke-width="1.5"/>
-                  <line x1="63" y1="95" x2="63" y2="100" stroke="var(--gold)" stroke-width="1" opacity="0.5"/>
-
-                  <!-- MALE stick figure (default) -->
-                  <g id="stick-male">
-                    <!-- head -->
-                    <circle cx="28" cy="18" r="10" fill="none" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- neck to torso -->
-                    <line x1="28" y1="28" x2="28" y2="55" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- shoulders (horizontal) -->
-                    <line x1="8"  y1="45" x2="48" y2="45" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- left arm down -->
-                    <line x1="8"  y1="45" x2="4"  y2="80" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- right arm down -->
-                    <line x1="48" y1="45" x2="52" y2="80" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- waist dashed line -->
-                    <line x1="16" y1="95" x2="40" y2="95" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 2"/>
-                    <!-- hips (horizontal, same width as shoulders) -->
-                    <line x1="16" y1="100" x2="40" y2="100" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- left leg -->
-                    <line x1="20" y1="100" x2="12" y2="150" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="12" y1="150" x2="8"  y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- right leg -->
-                    <line x1="36" y1="100" x2="44" y2="150" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="44" y1="150" x2="48" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- feet -->
-                    <line x1="5"  y1="192" x2="16" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="42" y1="192" x2="54" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                  </g>
-
-                  <!-- FEMALE stick figure (hidden by default) -->
-                  <g id="stick-female" style="display:none">
-                    <!-- head -->
-                    <circle cx="28" cy="18" r="10" fill="none" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- neck -->
-                    <line x1="28" y1="28" x2="28" y2="42" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- dress/skirt triangle: shoulders narrow, hips wide -->
-                    <polygon points="14,42 42,42 52,100 4,100" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
-                    <!-- waist dashed line across triangle -->
-                    <line x1="10" y1="83" x2="46" y2="83" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="4 2"/>
-                    <!-- waist bracket target -->
-                    <line x1="60" y1="83" x2="66" y2="83"  stroke="var(--gold)" stroke-width="1.5"/>
-                    <line x1="63" y1="83" x2="63" y2="100" stroke="var(--gold)" stroke-width="1" opacity="0.5"/>
-                    <!-- arms from shoulders -->
-                    <line x1="14" y1="42" x2="4"  y2="76" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="42" y1="42" x2="52" y2="76" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- left leg -->
-                    <line x1="14" y1="100" x2="10" y2="150" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="10" y1="150" x2="6"  y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- right leg -->
-                    <line x1="42" y1="100" x2="46" y2="150" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="46" y1="150" x2="50" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <!-- feet -->
-                    <line x1="3"  y1="192" x2="14" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                    <line x1="44" y1="192" x2="56" y2="192" stroke="var(--blue)" stroke-width="2.5"/>
-                  </g>
-                </svg>
 
               </div><!-- /stick-figure-area -->
 
@@ -148,13 +82,14 @@
                 <div class="event-block-header">
                   <span class="event-icon">💪</span>
                   <span class="event-block-title">Strength</span>
-                  <div class="event-type-pills" id="str-pills">
+                  <div class="event-type-pills" id="str-pills" hidden>
                     <button type="button" class="pill active" data-group="strength_event" data-val="hr_pushups">HR Push-ups</button>
                     <button type="button" class="pill" data-group="strength_event" data-val="pushups">Push-ups</button>
                   </div>
                 </div>
                 <div class="event-input-row">
-                  <input type="number" class="event-val-input" id="hrpushup_val" min="0" max="100" placeholder="0">
+                  <select class="event-select" data-event-group="strength_event" aria-label="Strength exercise"><option value="hr_pushups">HR</option><option value="pushups">PU</option></select>
+                  <span class="scored-input "><input type="number" class="event-val-input" id="hrpushup_val" aria-label="Strength repetitions" inputmode="numeric" min="0" max="100" placeholder="0"><span id="badge-hrpushup_val" class="input-score-badge" role="status" hidden></span><span id="max-gap-hrpushup_val" class="input-max-gap" hidden></span></span>
                   <span class="event-unit" id="str-unit">reps</span>
                 </div>
                 <input type="hidden" id="strength_event_val" value="hr_pushups">
@@ -165,14 +100,15 @@
                 <div class="event-block-header">
                   <span class="event-icon">🧘</span>
                   <span class="event-block-title">Core</span>
-                  <div class="event-type-pills" id="core-pills">
+                  <div class="event-type-pills" id="core-pills" hidden>
                     <button type="button" class="pill active" data-group="core_event" data-val="situps">Sit-ups</button>
                     <button type="button" class="pill" data-group="core_event" data-val="rev_crunch">Rev. Crunch</button>
                     <button type="button" class="pill" data-group="core_event" data-val="plank">Plank</button>
                   </div>
                 </div>
                 <div class="event-input-row">
-                  <input type="number" class="event-val-input" id="core_val" min="0" max="300" placeholder="0">
+                  <select class="event-select" data-event-group="core_event" aria-label="Core exercise"><option value="situps">SU</option><option value="rev_crunch">CL</option><option value="plank">PL</option></select>
+                  <span class="scored-input "><input type="number" class="event-val-input" id="core_val" aria-label="Core result" inputmode="numeric" min="0" max="300" placeholder="0"><span id="badge-core_val" class="input-score-badge" role="status" hidden></span><span id="max-gap-core_val" class="input-max-gap" hidden></span></span>
                   <span class="event-unit" id="core-unit">reps</span>
                 </div>
                 <input type="hidden" id="core_event_val" value="situps">
@@ -182,14 +118,15 @@
               <div class="event-block">
                 <div class="event-block-header">
                   <span class="event-icon">🏃</span>
-                  <span class="event-block-title">Cardio</span>
-                  <div class="event-type-pills" id="cardio-pills">
+                  <span class="event-block-title">Run</span>
+                  <div class="event-type-pills" id="cardio-pills" hidden>
                     <button type="button" class="pill active" data-group="cardio_event" data-val="hamr">HAMR</button>
                     <button type="button" class="pill" data-group="cardio_event" data-val="run">2-Mile Run</button>
                   </div>
                 </div>
                 <div class="event-input-row">
-                  <input type="text" class="event-val-input" id="cardio_val" placeholder="0" inputmode="decimal">
+                  <select class="event-select" data-event-group="cardio_event" aria-label="Run exercise"><option value="hamr">HAMR</option><option value="run">2MI</option></select>
+                  <span class="scored-input "><input type="text" class="event-val-input" id="cardio_val" aria-label="Run or HAMR result" placeholder="0" inputmode="decimal"><button type="button" id="hamr-input-swap" class="hamr-input-swap" aria-label="Switch to level and shuttle input">0-0</button><span id="badge-cardio_val" class="input-score-badge" role="status" hidden></span><span id="max-gap-cardio_val" class="input-max-gap" hidden></span></span>
                   <span class="event-unit" id="cardio-unit">reps</span>
                 </div>
                 <input type="hidden" id="cardio_event_val" value="hamr">
@@ -198,6 +135,7 @@
             </div><!-- /events-column -->
           </div><!-- /personal-body -->
 
+          <div class="input-total" role="status" aria-live="polite"><span class="input-total-label">Total score</span><span class="input-total-value" id="input-total-score">—<small> / 100</small></span><span class="input-total-rating" id="input-total-rating">Enter your details</span></div>
           <div id="calc-error" class="error-msg"></div>
         </div><!-- /personal-card -->
 
@@ -323,6 +261,7 @@
           <span class="legend-dot marginal"></span>Marginal
         </div>
       </div>
+      <div id="chart-minimum" class="chart-minimum" role="status"></div>
       <div class="chart-columns-wrap" id="chart-columns-wrap">
         <!-- JS fills this with point-band columns -->
       </div>
@@ -334,88 +273,33 @@
        TAB: HAMR EXPLORER
   ================================================================ -->
   <div id="hamr-explorer" class="tab-panel">
-    <div class="section-eyebrow">Cardio Reference</div>
-    <h2 class="section-title">HAMR Explorer</h2>
-
-    <div class="hamr-top-layout">
-      <!-- Slider card -->
-      <div class="card hamr-slider-card">
-        <div class="card-eyebrow">Current Rep</div>
-        <div class="hamr-slider-row">
-          <span class="hamr-rep-display" id="hamr-rep-display">54</span>
-          <input type="range" id="hamr-rep-slider" min="1" max="100" value="54" class="hamr-range">
-          <input type="number" id="hamr-rep-input" min="1" max="100" value="54" class="hamr-num-input">
+    <div class="section-eyebrow">Shuttle stats</div>
+    <h2 class="section-title">HAMR</h2>
+    <div class="card hamr-dashboard">
+      <div class="hamr-entry">
+        <label class="field-label" for="hamr-stats-input" id="hamr-stats-label">Total reps</label>
+        <div class="hamr-stepper">
+          <button type="button" id="hamr-step-down" class="hamr-step-button" aria-label="Previous shuttle">−</button>
+        <div class="hamr-entry-input">
+          <input type="text" id="hamr-stats-input" value="48" inputmode="numeric" autocomplete="off" aria-describedby="hamr-stats-help hamr-stats-error">
+          <button type="button" id="hamr-stats-swap" class="hamr-input-swap">6-7</button>
         </div>
+          <button type="button" id="hamr-step-up" class="hamr-step-button" aria-label="Next shuttle">+</button>
+        </div>
+        <p id="hamr-stats-help" class="hamr-help">Tap the gray value to switch between total reps and level–shuttle.</p>
+        <p id="hamr-stats-error" class="hamr-input-error" role="status" hidden></p>
       </div>
-
-      <!-- Stats grid -->
-      <div class="hamr-stats-grid">
-        <div class="stat-box accent-box">
-          <div class="stat-label">Level – Rep</div>
-          <div class="stat-val" id="hamr-level-rep">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Elapsed Time</div>
-          <div class="stat-val" id="hamr-elapsed">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Sec / Beep</div>
-          <div class="stat-val" id="hamr-beep">—</div>
-        </div>
-        <div class="stat-box blue-box">
-          <div class="stat-label">Current Pace</div>
-          <div class="stat-val" id="hamr-speed-mph">—</div>
-          <div class="stat-sub" id="hamr-speed-ms"></div>
-        </div>
-        <div class="stat-box blue-box">
-          <div class="stat-label">Track Lap Pace</div>
-          <div class="stat-val" id="hamr-lap-pace">—</div>
-          <div class="stat-sub">per ¼-mile lap</div>
-        </div>
-        <div class="stat-box accent-box">
-          <div class="stat-label">2-Mile Equiv</div>
-          <div class="stat-val" id="hamr-equiv">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Distance</div>
-          <div class="stat-val" id="hamr-dist-m">—</div>
-          <div class="stat-sub" id="hamr-dist-mi"></div>
-        </div>
+      <div class="hamr-metrics" aria-live="polite" aria-atomic="true">
+        <div class="stat-box accent-box"><div class="stat-label">Total elapsed time</div><div class="stat-val" id="hamr-elapsed">—</div><div class="stat-sub">from the first shuttle</div></div>
+        <div class="stat-box"><div class="stat-label">Avg seconds / beep</div><div class="stat-val" id="hamr-beep">—</div><div class="stat-sub">across all completed shuttles</div></div>
+        <div class="stat-box blue-box"><div class="stat-label">Avg speed</div><div class="stat-val" id="hamr-speed-mph">—</div><div class="stat-sub">miles per hour</div></div>
+        <div class="stat-box blue-box"><div class="stat-label">400 m lap equivalent</div><div class="stat-val" id="hamr-lap-pace">—</div><div class="stat-sub">at your average speed</div></div>
+        <div class="stat-box accent-box"><div class="stat-label">2-mile equivalent</div><div class="stat-val" id="hamr-equiv">—</div><div class="stat-sub">at your average speed</div></div>
+        <div class="stat-box"><div class="stat-label">Total distance</div><div class="stat-val" id="hamr-dist-m">—</div><div class="stat-sub" id="hamr-dist-mi">—</div></div>
       </div>
+      <p class="hamr-help hamr-method">Timing estimates use the app’s shuttle schedule (0–100 reps), excluding the starting countdown. Pace equivalents hold average speed constant; they are not predicted race times or score equivalents.</p>
     </div>
-
-    <!-- Comparison -->
-    <div class="card">
-      <div class="card-eyebrow">Progress Comparison</div>
-      <div class="cmp-controls">
-        <span class="cmp-label-txt">Target:</span>
-        <input type="range" id="hamr-cmp-slider" min="1" max="100" value="72" class="hamr-range gold-range">
-        <input type="number" id="hamr-cmp-input" min="1" max="100" value="72" class="hamr-num-input gold-num">
-      </div>
-      <div id="hamr-comparison"></div>
-    </div>
-
-  </div><!-- /hamr-explorer -->
-
-
-  <!-- ================================================================
-       TAB: HAMR TABLE
-  ================================================================ -->
-  <div id="hamr-table" class="tab-panel">
-    <div class="section-eyebrow">Reference Data</div>
-    <h2 class="section-title">HAMR Table</h2>
-
-    <div class="card">
-      <div class="table-search-row">
-        <input type="number" id="hamr-table-search" placeholder="Filter by rep…" min="1" max="100">
-        <button class="pill" onclick="document.getElementById('hamr-table-search').value=''; renderHAMRTable();">Clear</button>
-      </div>
-
-      <!-- Grouped by level -->
-      <div id="hamr-level-groups"></div>
-    </div>
-
-  </div><!-- /hamr-table -->
+  </div>
 
 </main>
 

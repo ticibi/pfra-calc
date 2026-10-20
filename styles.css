@@ -742,40 +742,17 @@ body::before {
 
 /* Column layout for chart — each point tier gets a column band */
 .chart-columns-wrap {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--blue-dim) transparent;
-}
-
-.chart-columns-wrap::-webkit-scrollbar {
-  height: 10px;
-}
-
-.chart-columns-wrap::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chart-columns-wrap::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--blue), var(--blue-dim));
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-.chart-columns-wrap::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #2a93ef, var(--blue));
-  background-clip: padding-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(110px, 100%), 1fr));
+  gap: 8px;
 }
 
 .chart-band {
-  flex: 1;
-  min-width: 90px;
-  border-right: 1px solid var(--border);
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
   padding: 10px 12px;
 }
-.chart-band:last-child { border-right: none; }
 
 .chart-band-header {
   display: flex; flex-direction: column;
@@ -1084,11 +1061,260 @@ input:focus { outline: none; border-color: var(--blue); }
 /* ================================================================
    RESPONSIVE
    ================================================================ */
-@media (max-width: 700px) {
-  .personal-body { flex-direction: column; }
-  .silhouette-wrap { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-  .height-marker, .waist-marker { position: static; }
-  .combo-item { grid-template-columns: 1fr; gap: 2px; }
-  .hamr-reps-grid { grid-template-columns: 1fr; }
-  .main-container { padding: 16px 12px 48px; }
+/* Body-aligned assessment, shared across desktop and mobile. */
+:root { --text-dim: #8299ae; --r: 14px; --r-sm: 8px; }
+.header-inner { height: auto; min-height: 76px; flex-wrap: wrap; padding-block: 12px; }
+.brand-subtitle { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.logo-hex { width: 40px; height: 40px; }
+.tab-btn { min-height: 44px; }
+.calc-layout { grid-template-columns: minmax(0, 1fr) 280px; }
+.calc-left, .calc-right { min-width: 0; }
+.personal-card { padding: 24px; }
+.personal-body {
+  display: grid;
+  grid-template-columns: minmax(138px, 230px) 90px 76px;
+  grid-template-rows: 44px 70px repeat(3, 130px) auto;
+  justify-content: center;
+  align-items: center;
+  gap: 0 20px;
 }
+.silhouette-wrap, .stick-figure-area, .events-column { display: contents; }
+.sex-toggle { grid-column: 2 / 4; grid-row: 1; justify-self: center; }
+.sil-field { position: relative; inset: auto; align-items: center; gap: 6px; }
+.sil-field-age { grid-column: 2; grid-row: 2; }
+.sil-field-height { grid-column: 3; grid-row: 3; align-self: start; margin-top: 8px; }
+.sil-field-waist { grid-column: 3; grid-row: 4; align-self: start; margin-top: 8px; }
+#stick-svg { grid-column: 2; grid-row: 3 / 6; width: 90px; height: 390px; align-self: start; }
+.whtr-live { grid-column: 1 / -1; grid-row: 6; justify-self: center; max-width: 260px; margin-top: 16px; padding: 9px 14px; }
+.event-block { grid-column: 1; padding: 12px; position: relative; border-radius: 12px; background: rgba(8,12,18,.65); }
+.event-block:nth-child(1) { grid-row: 3; }
+.event-block:nth-child(2) { grid-row: 4; }
+.event-block:nth-child(3) { grid-row: 5; align-self: end; }
+.event-block::after { content: ''; position: absolute; top: 50%; left: 100%; width: 16px; height: 1px; background: var(--border-hi); }
+.event-block-header { gap: 5px; margin-bottom: 8px; }
+.event-icon { display: none; }
+.event-block-title { color: var(--text); font-size: 10px; }
+.event-type-pills { width: 100%; gap: 4px; }
+.event-type-pills .pill { padding: 5px 8px; min-height: 32px; font-size: 11px; }
+.event-input-row { justify-content: center; }
+input.sil-input, input.event-val-input { font-size: 16px; min-height: 44px; padding: 8px; font-variant-numeric: tabular-nums; }
+input.sil-input { width: 72px; }
+input.event-val-input { width: 80px; }
+.field-label { font-size: 10px; }
+button { touch-action: manipulation; }
+button:focus-visible, input:focus-visible { outline: 2px solid #83d5ff; outline-offset: 3px; }
+.calc-right { top: 100px; }
+@media (max-width: 1050px) {
+  .calc-layout { grid-template-columns: minmax(0, 1fr); max-width: 720px; margin-inline: auto; }
+  .calc-right { position: static; }
+}
+@media (max-width: 700px) {
+  .header-inner { justify-content: center; padding: 12px 12px 0; gap: 8px; }
+  .logo { justify-content: center; }
+  .tab-nav { width: 100%; overflow-x: auto; padding-bottom: 6px; }
+  .tab-btn { flex: 1 0 auto; padding: 8px 10px; font-size: 10px; }
+  .main-container { padding: 16px 12px 40px; }
+  .personal-card { padding: 16px 12px; }
+  .personal-body { grid-template-columns: minmax(130px, 1fr) 80px 64px; column-gap: 8px; }
+  #stick-svg { width: 80px; }
+  input.sil-input { width: 62px; }
+  .event-block { padding: 9px 7px; }
+  .event-block::after { width: 8px; }
+  .event-type-pills .pill { padding: 5px 6px; font-size: 10px; }
+  .sil-field-height::before, .sil-field-waist::before { width: 8px; }
+  .card { padding: 16px 12px; }
+  .combo-item { grid-template-columns: 1fr; gap: 4px; }
+  .hamr-reps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hamr-level-header { flex-wrap: wrap; gap: 4px 10px; }
+  .cmp-grid { gap: 6px; }
+  .cmp-col { padding: 10px 6px; min-width: 0; }
+  .cmp-val { font-size: 22px; }
+  .table-search-row { flex-wrap: wrap; }
+}
+@media (max-width: 359px) {
+  .personal-body { grid-template-columns: minmax(116px, 1fr) 66px 58px; column-gap: 5px; }
+  #stick-svg { width: 66px; }
+  input.sil-input { width: 56px; }
+  .field-label { font-size: 9px; }
+  .event-type-pills .pill { font-size: 9px; padding-inline: 5px; }
+}
+
+/* Native pickers keep every exercise option within easy reach on phones. */
+.personal-body { grid-template-rows: 44px 70px repeat(3, 150px) auto; }
+#stick-svg { height: 450px; }
+.event-block { align-self: center; }
+.event-block-header { display: block; }
+.event-type-pills[hidden] { display: none; }
+.event-select { width: 100%; min-height: 44px; margin-top: 4px; padding: 6px; border: 1px solid var(--border-hi); border-radius: 8px; background: var(--bg-4); color: var(--text-hi); font: 12px var(--font-ui); }
+.whtr-live:empty { display: none; }
+@media (max-width: 700px) {
+  .tab-nav { overflow-x: visible; }
+  .tab-btn { flex: 1 1 0; padding-inline: 3px; font-size: 9px; letter-spacing: .02em; white-space: nowrap; }
+}
+
+.event-select { font-size: 16px; }
+
+/* Matching boxes on both sides of the figure. */
+.personal-body {
+  grid-template-columns: minmax(120px, 190px) 90px minmax(120px, 190px);
+  grid-template-rows: 52px 110px repeat(3, 110px) auto;
+  column-gap: 20px;
+}
+.sex-toggle { grid-column: 1 / -1; grid-row: 1; }
+#stick-svg { grid-row: 2 / 6; height: 440px; }
+.sil-field-age { grid-column: 3; grid-row: 2; }
+.sil-field-height { grid-row: 3; }
+.sil-field-waist { grid-row: 4; }
+.sil-field { height: 98px; width: 100%; margin: 0; padding: 10px; align-self: center; justify-content: center; background: rgba(8,12,18,.65); border: 1px solid var(--border); border-radius: 12px; }
+.event-block, .event-block:nth-child(3) { height: 98px; align-self: center; padding: 10px; }
+.event-block-header { margin-bottom: 5px; line-height: 15px; }
+.event-input-row { display: flex; gap: 5px; position: relative; padding-bottom: 14px; }
+.event-select { width: 54%; min-width: 0; margin: 0; padding: 5px 2px; }
+input.event-val-input { width: 46%; min-width: 0; padding-inline: 2px; }
+.event-unit { position: absolute; right: 2px; bottom: -2px; font-size: 9px; }
+.sil-field-age::before { content: ''; position: absolute; top: 50%; right: 100%; width: 12px; height: 1px; background: var(--border-hi); }
+.sil-field-height::before, .sil-field-waist::before { top: 50%; }
+@media (max-width: 700px) {
+  .personal-body { grid-template-columns: minmax(0, 1fr) 66px minmax(0, 1fr); column-gap: 8px; }
+  #stick-svg { width: 66px; }
+  .event-block, .event-block:nth-child(3), .sil-field { padding: 8px 5px; }
+  .event-select { font-size: 16px; }
+  .event-block::after, .sil-field-age::before { width: 8px; }
+}
+@media (max-width: 359px) {
+  .personal-body { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr); column-gap: 6px; }
+  #stick-svg { width: 44px; }
+  .event-input-row { gap: 2px; }
+  .event-select { width: 60%; }
+  input.event-val-input { width: 40%; }
+}
+
+.event-select { width: 62%; appearance: none; padding: 5px 9px 5px 3px; letter-spacing: -.5px; background-image: linear-gradient(45deg, transparent 50%, var(--text) 50%), linear-gradient(135deg, var(--text) 50%, transparent 50%); background-position: calc(100% - 6px) 50%, calc(100% - 3px) 50%; background-size: 3px 3px; background-repeat: no-repeat; }
+input.event-val-input { width: 38%; }
+
+/* Compact paired inputs: strength/age, core/height, run/waist. */
+.personal-body { grid-template-rows: 52px repeat(3, 100px) auto; }
+#stick-svg { grid-row: 2 / 5; height: 300px; }
+.event-block:nth-child(1), .sil-field-age { grid-row: 2; }
+.event-block:nth-child(2), .sil-field-height { grid-row: 3; }
+.event-block:nth-child(3), .sil-field-waist { grid-row: 4; }
+.event-block, .event-block:nth-child(3), .sil-field {
+  height: 76px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  align-self: center;
+}
+.event-block-header { margin-bottom: 4px; text-align: center; line-height: 15px; }
+.sil-field { gap: 4px; }
+.sil-field .field-label { line-height: 15px; }
+.event-input-row { padding-bottom: 0; }
+.event-unit { top: 100%; bottom: auto; font-size: 8px; line-height: 12px; }
+.event-select, input.event-val-input, input.sil-input { min-height: 40px; height: 40px; border-radius: 6px; }
+.event-block::after, .sil-field::before { display: none; }
+.whtr-live { grid-row: 5; margin-top: 8px; }
+.event-block { display: grid; grid-template-rows: 15px 40px; row-gap: 4px; align-content: center; }
+.event-block-header { margin: 0; }
+
+/* Display the supplied character image directly. */
+#stick-svg { object-fit: contain; filter: none; }
+
+/* Blend the original white-backed image into the dark card and tint its ink blue. */
+#stick-svg {
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(165deg) brightness(.85);
+  align-self: center;
+}
+.personal-card { isolation: isolate; }
+#stick-svg {
+  object-fit: fill;
+  filter: invert(1) sepia(1) saturate(8) hue-rotate(165deg) brightness(.65);
+}
+/* Keep the replacement character's original proportions. */
+#stick-svg { object-fit: contain; }
+
+/* Live component points, anchored to each result input. */
+.personal-body { grid-template-columns: minmax(120px, 190px) 24px minmax(120px, 190px); }
+.scored-input { position: relative; display: inline-flex; width: 38%; min-width: 0; }
+.scored-input input.event-val-input { width: 100%; }
+.scored-input.scored-personal { width: auto; }
+.input-score-badge {
+  position: absolute; top: -12px; right: -9px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px; padding: 0 3px; border-radius: 50%;
+  border: 2px solid var(--bg-2); font: 700 10px var(--font-ui);
+  color: #fff; box-shadow: 0 2px 6px #0005; pointer-events: auto;
+}
+.input-score-badge[hidden] { display: none; }
+.input-score-badge.excellent { background: #167d43; }
+.input-score-badge.satisfactory { background: #1768b1; }
+.input-score-badge.unsat { background: #b93640; }
+@media (max-width: 700px) {
+  .personal-body { grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); }
+}
+
+.input-max-gap { position: absolute; top: calc(100% + 3px); left: 0; color: var(--gold); font: 700 10px var(--font-ui); white-space: nowrap; }
+.input-max-gap[hidden] { display: none; }
+
+.input-score-badge.maxed { border-color: var(--gold); }
+
+/* The waist ratio now sits directly below its input. */
+.whtr-live { display: none; }
+
+.run-time-row .event-select { width: 45%; }
+.run-time-row .scored-input { width: 55%; }
+
+/* Keep the total close to the inputs, before the detailed breakdown. */
+.input-total { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 16px; margin-top: 14px; padding: 16px 8px 2px; border-top: 1px solid var(--border-hi); }
+.input-total-label { color: var(--gold); font: 700 11px var(--font-ui); text-transform: uppercase; letter-spacing: .08em; }
+.input-total-value { grid-column: 2; grid-row: 1 / 3; color: var(--text-hi); font: 700 32px var(--font-ui); font-variant-numeric: tabular-nums; }
+.input-total-value small { font-size: 12px; font-weight: 400; color: var(--text-dim); }
+.input-total-rating { font-size: 11px; color: var(--text-dim); }
+.input-total-rating.excellent { color: var(--excellent); }
+.input-total-rating.satisfactory { color: var(--satisfactory); }
+.input-total-rating.marginal { color: var(--marginal); }
+.input-total-rating.unsat { color: var(--unsat); }
+
+.hamr-input-row .event-select { width: 35%; }
+.hamr-input-row .scored-input { width: 65%; }
+.hamr-input-row input.event-val-input { padding-right: 44px; text-align: left; padding-left: 5px; }
+.hamr-input-swap { position: absolute; right: 2px; top: 0; height: 40px; width: 42px; padding: 0 2px; border: 0; border-left: 1px solid var(--border); background: transparent; color: var(--text-dim); font: 10px var(--font-ui); cursor: pointer; }
+.hamr-input-swap:hover { color: var(--text-hi); }
+.hamr-input-swap[hidden] { display: none; }
+.hamr-input-row .event-select { width: 58px; flex-shrink: 0; }
+.hamr-input-row .scored-input { flex: 1; width: auto; }
+@media (max-width: 700px) {
+  .personal-body { grid-template-columns: minmax(0, 1.2fr) 8px minmax(0, 1fr); }
+}
+
+.chart-minimum { margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--gold-dim); border-radius: var(--r-sm); background: var(--gold-glow); color: var(--gold); font-size: 12px; }
+.chart-minimum[hidden] { display: none; }
+.chart-minimum-tag { margin-bottom: 6px; color: var(--gold); font-size: 10px; font-weight: 700; text-align: center; }
+
+/* HAMR: a single entry and six cumulative stats. */
+.hamr-dashboard { max-width: 800px; margin-inline: auto; }
+#hamr-explorer > .section-title, #hamr-explorer > .section-eyebrow { max-width: 800px; margin-inline: auto; }
+.hamr-entry { max-width: 360px; margin: 0 auto 24px; text-align: center; }
+.hamr-entry-input { position: relative; width: 210px; margin: 8px auto 10px; }
+.hamr-entry-input input { width: 100%; min-height: 52px; padding: 10px 78px 10px 16px; font-size: 22px; font-variant-numeric: tabular-nums; }
+.hamr-entry-input .hamr-input-swap { width: 76px; height: 52px; font-size: 14px; }
+.hamr-help { font-size: 12px; line-height: 1.6; color: var(--text-dim); }
+.hamr-input-error { font-size: 12px; color: var(--unsat); margin-top: 8px; }
+.hamr-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.hamr-metrics .stat-box { min-width: 0; padding: 18px 12px; }
+.hamr-metrics .stat-val { font-size: 25px; }
+.hamr-method { margin-top: 20px; }
+@media (max-width: 600px) {
+  .hamr-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hamr-metrics .stat-val { font-size: 22px; }
+}
+
+.hamr-stepper { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px auto 10px; }
+.hamr-stepper .hamr-entry-input { flex: 1; min-width: 0; max-width: 210px; margin: 0; }
+.hamr-step-button { width: 44px; height: 52px; flex-shrink: 0; border: 1px solid var(--border-hi); border-radius: var(--r-sm); background: var(--bg-4); color: var(--text-hi); font: 24px var(--font-ui); cursor: pointer; }
+.hamr-step-button:hover:enabled { border-color: var(--blue); background: var(--blue-dim); }
+.hamr-step-button:disabled { opacity: .35; cursor: default; }
